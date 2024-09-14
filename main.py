@@ -31,6 +31,9 @@ def parse_html(url, latest_product):
         if current_product != latest_product:
             print("there have been changes in the feed, a new upload has been done")
             return current_product
+        else :
+            print(f"There is no new products available")
+            return current_product
     except Exception as e:
         print(f"Error: {e}")
         return latest_product
