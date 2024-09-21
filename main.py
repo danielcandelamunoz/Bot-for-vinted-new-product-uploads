@@ -88,9 +88,21 @@ async def start_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     latest_product = ""
     await send_telegram_message(chat_id, "search has been initiated...")
 
-    while True: 
-        latest_product = await parse_html(chat_id, latest_product)
-        await asyncio.sleep(40)
+    async def monitor():  # A function that allows running parse_html in the background while the bot listens to other commands
+        nonlocal latest_product
+        while True:
+            latest_product = await parse_html(chat_id, latest_product)
+            await asyncio.sleep(40)
+    context.user_data['monitor_task'] = asyncio.create_task(monitor())
+
+
+async def stop_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id =update.message.chat_id
+    if 'monitor_task' in context.user_data:
+        context.user_data['monitor_task'].cancel()
+        await send_telegram_message(chat_id, "The search has been stopped you can now change the url or start it again using de commands")
+    else:
+        await send_telegram_message(chat_id, "There is no active search that can be stopped")
 
 # Comands
 
@@ -98,6 +110,7 @@ Application = ApplicationBuilder().token(TOKEN).build()
 
 Application.add_handler(CommandHandler("startsearch", start_search))
 Application.add_handler(CommandHandler("seturl", set_url))
+Application.add_handler(CommandHandler("stopsearch",stop_search))
 
 Application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), save_url))
 
