@@ -36,14 +36,14 @@ async def save_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_telegram_message(chat_id, f"Url: {url} is ready for searching...")
             context.user_data['waiting for url'] = False
         
-def get_driver(): 
+async def get_driver(): 
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920x1080")
-    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     return driver
     
 
