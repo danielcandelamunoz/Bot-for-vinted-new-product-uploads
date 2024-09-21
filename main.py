@@ -9,6 +9,7 @@ import telegram
 import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0'
@@ -35,6 +36,16 @@ async def save_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_telegram_message(chat_id, f"Url: {url} is ready for searching...")
             context.user_data['waiting for url'] = False
         
+def get_driver(): 
+    chrome_options = Options()
+    chrome_options.add_argument("--disable-cache")
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1920x1080")
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    return driver
+    
 
 async def parse_html(chat_id, latest_product): 
     try: 
@@ -42,16 +53,8 @@ async def parse_html(chat_id, latest_product):
         if not url:
             await send_telegram_message(chat_id, "there is no url or its not correct.")
             return latest_product
-        
-        chrome_options = Options()
-        chrome_options.add_argument("--disable-cache")
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--window-size=1920x1080") 
 
-        service = Service(r'C:\Users\34635\Downloads\chromedriver-win64\chromedriver-win64\chromedriver.exe')
-        driver = webdriver.Chrome(service=service, options= chrome_options)
+        driver = get_driver()
         driver.get(url)
         time.sleep(5)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
