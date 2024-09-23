@@ -57,7 +57,7 @@ async def parse_html(chat_id, latest_product):
 
         driver = await get_driver()
         driver.get(url)
-        await asyncio.sleep(5)
+        await asyncio.sleep(15)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         
         product = soup.find('a', class_="new-item-box__overlay new-item-box__overlay--clickable")
