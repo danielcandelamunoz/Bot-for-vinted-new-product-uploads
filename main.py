@@ -10,8 +10,9 @@ import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from webdriver_manager.chrome import ChromeDriverManager
+import os
 
-
+os.system('apt-get update && apt-get install -y chromium-driver')
 TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0'
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
@@ -54,9 +55,9 @@ async def parse_html(chat_id, latest_product):
             await send_telegram_message(chat_id, "there is no url or its not correct.")
             return latest_product
 
-        driver = get_driver()
+        driver = await get_driver()
         driver.get(url)
-        time.sleep(5)
+        await asyncio.sleep(5)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         
         product = soup.find('a', class_="new-item-box__overlay new-item-box__overlay--clickable")
