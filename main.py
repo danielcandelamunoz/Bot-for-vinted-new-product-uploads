@@ -51,6 +51,7 @@ async def get_driver():
     
 
 async def parse_html(chat_id, latest_product): 
+    driver= None
     try: 
         url = URLS.get(chat_id)
         if not url:
