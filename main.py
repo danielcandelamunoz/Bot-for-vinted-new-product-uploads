@@ -13,7 +13,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import os
 from dotenv import load_dotenv
 
-TOKEN = os.getenv('Telegram_bot_token')
+TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0' #os.getenv('Telegram_bot_token')
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
 
