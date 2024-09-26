@@ -12,6 +12,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from webdriver_manager.chrome import ChromeDriverManager
 import os
 from dotenv import load_dotenv
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+import threading
 
 TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0' #os.getenv('Telegram_bot_token')
 URLS = {}
@@ -117,9 +119,17 @@ Application.add_handler(CommandHandler("seturl", set_url))
 Application.add_handler(CommandHandler("stopsearch",stop_search))
 
 Application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), save_url))
+def star_https_server():
 
+    port = int(os.getenv("PORT", 8080))
 
+    # Iniciar un servidor básico HTTP
+    handler = SimpleHTTPRequestHandler
+    httpd = HTTPServer(("", port), handler)
+    print(f"Serving on port {port}")
+    httpd.serve_forever()
 if __name__ == "__main__":
+   threading.Thread(target=start_http_server).start()
    Application.run_polling()
 
 
