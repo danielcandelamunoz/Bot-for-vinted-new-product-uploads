@@ -119,7 +119,7 @@ Application.add_handler(CommandHandler("seturl", set_url))
 Application.add_handler(CommandHandler("stopsearch",stop_search))
 
 Application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), save_url))
-def star_https_server():
+def start_http_server():
 
     port = int(os.getenv("PORT", 8080))
 
