@@ -11,9 +11,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from webdriver_manager.chrome import ChromeDriverManager
 import os
+from dotenv import load_dotenv
 
-os.system('apt-get update && apt-get install -y chromium-driver')
-TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0'
+TOKEN = os.getenv('Telegram_bot_token')
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
 
