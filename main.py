@@ -15,13 +15,19 @@ from dotenv import load_dotenv
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import threading
 
-TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0' #os.getenv('Telegram_bot_token')
+TOKEN = '7416112397:AAGipeFJtalPmxNb5QgDuDLb2gdVWVEpn_E' #os.getenv('Telegram_bot_token')
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
 
 
 
 # Parse html to try to find differences from the previous reload.
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get('waiting for url'):
+        await save_url(update, context)
+    elif context.user_data.get('waiting for delete'):
+        await process_delete(update, context)
+
 async def send_telegram_message(chat_id, message):
 
    await bot.send_message(chat_id = chat_id, text = message)
@@ -35,10 +41,50 @@ async def save_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.message.chat_id
         if context.user_data.get('waiting for url'):
             url = update.message.text
-            URLS[chat_id] = url 
+            if chat_id not in URLS:
+                URLS[chat_id] = []
+            URLS[chat_id].append(url)
             await send_telegram_message(chat_id, f"Url: {url} is ready for searching...")
             context.user_data['waiting for url'] = False
-        
+async def delete_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    if chat_id not in URLS or not URLS[chat_id]:
+        await send_telegram_message(chat_id, "No URLs found to delete.")
+        return
+    
+    await send_telegram_message(chat_id, f"Please reply to this message either with the number or the url that u want to delete")
+    context.user_data['waiting for delete']= True
+
+async def process_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id= update.message.chat_id
+    if context.user_data.get('waiting for delete'):
+        input_value = update.message.text
+        try: 
+
+            index = int(input_value) - 1
+            if 0<= index < len(URLS[chat_id]):
+                removed_url = URLS[chat_id].pop(index)
+                await send_telegram_message(chat_id, f"Url {removed_url} has been deleted")
+            else:
+                await send_telegram_message(chat_id,f"The number is out of range")
+        except ValueError:
+            url_to_remove = input_value
+            if url_to_remove in URLS[chat_id]:
+                URLS[chat_id].remove(url_to_remove)
+                await send_telegram_message(chat_id, f"The url {url_to_remove} has been deleted")
+            else:
+                await send_telegram_message(chat_id, f"the url{url_to_remove} was not found in your url list")
+        context.user_data['waiting for delete']= False
+
+async def list_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    if chat_id in URLS and URLS[chat_id]:
+        # Crear una lista numerada de URLs
+        url_list = "\n".join([f"{i+1}. {url}" for i, url in enumerate(URLS[chat_id])])
+        await send_telegram_message(chat_id, f"Here are your current URLs:\n{url_list}")
+    else:
+        await send_telegram_message(chat_id, "You don't have any URLs saved.")
+
 async def get_driver(): 
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -50,49 +96,54 @@ async def get_driver():
     return driver
     
 
-async def parse_html(chat_id, latest_product): 
-    driver= None
-    try: 
-        url = URLS.get(chat_id)
-        if not url:
-            await send_telegram_message(chat_id, "there is no url or its not correct.")
-            return latest_product
+async def parse_html(chat_id, latest_products):  # latest_products will now be a dict of {url: latest_product}
+    driver = None
+    try:
+        urls = URLS.get(chat_id, [])
+        if not urls:
+            await send_telegram_message(chat_id, "No URLs found. Please set URLs with /seturl.")
+            return latest_products
 
         driver = await get_driver()
-        driver.get(url)
-        await asyncio.sleep(15)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
-        product = soup.find('a', class_="new-item-box__overlay new-item-box__overlay--clickable")
-        product_link = product['href']
-        product_title = product['title']
-        print(product_title)
-        product_info = product_title.split(", ")
-        product_name = product_info[0].strip().lower()
-        
-        current_product = product_name
-        print(f"actual producto : {current_product}")
-        print(f"ultimo producto : {latest_product}")
 
-        if current_product != latest_product and latest_product != "":
-            print("there have been changes in the feed, a new upload has been done")
-            message = f"hay un nuevo producto :  {product_info} {product_link} "
-            await send_telegram_message(chat_id, message)
-            return current_product
-        else :
-            print(f"There is no new products available")
-            return current_product
+        for url in urls:
+            driver.get(url)
+            await asyncio.sleep(15)
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+            product = soup.find('a', class_="new-item-box__overlay new-item-box__overlay--clickable")
+            if not product:
+                await send_telegram_message(chat_id, f"No products found at {url}")
+                continue
+
+            product_link = product['href']
+            product_title = product['title']
+            product_info = product_title.split(", ")
+            product_name = product_info[0].strip().lower()
+
+            current_product = product_name
+            latest_product = latest_products.get(url, "")
+
+            if current_product != latest_product and latest_product != "":
+                message = f"There is a new product at {url}: {product_info} {product_link}"
+                await send_telegram_message(chat_id, message)
+                latest_products[url] = current_product
+            else:
+                print(f"No new products at {url}")
+
+        return latest_products
+
     except Exception as e:
         print(f"Error: {e}")
-        await send_telegram_message(chat_id, "An error has ocurred this migth be beacause 2 scenarios:\n 1. The Url u gave was not valid.\n Solution: please type /seturl to set the url again\n 2: the vinted page is down\n Solution: try later :( ")
-        return latest_product
+        await send_telegram_message(chat_id, "An error occurred. Check the URLs or try again later.")
+        return latest_products
     finally:
         if driver:
             driver.quit()
 
 async def start_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    latest_product = ""
+    latest_product = {}
     await send_telegram_message(chat_id, "search has been initiated...")
 
     async def monitor():  # A function that allows running parse_html in the background while the bot listens to other commands
@@ -111,15 +162,21 @@ async def stop_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await send_telegram_message(chat_id, "There is no active search that can be stopped")
 
-# Comands
+# Comands and handlers
+
+
 
 Application = ApplicationBuilder().token(TOKEN).build()
 
 Application.add_handler(CommandHandler("startsearch", start_search))
 Application.add_handler(CommandHandler("seturl", set_url))
 Application.add_handler(CommandHandler("stopsearch",stop_search))
+Application.add_handler(CommandHandler("deleteurl", delete_url))
+Application.add_handler(CommandHandler("listurl", list_url))
 
-Application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), save_url))
+Application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
+
+
 def start_http_server():
 
     port = int(os.getenv("PORT", 8080))
