@@ -122,14 +122,17 @@ async def parse_html(chat_id, latest_products):  # latest_products will now be a
             product_name = product_info[0].strip().lower()
 
             current_product = product_name
-            latest_product = latest_products.get(url, "")
+            latest_product = latest_products.get(url)
+            print(current_product)
+            print(latest_product)
 
-            if current_product != latest_product and latest_product != "":
+            if current_product != latest_product and latest_product != None:
                 message = f"There is a new product at {url}: {product_info} {product_link}"
                 await send_telegram_message(chat_id, message)
                 latest_products[url] = current_product
             else:
                 print(f"No new products at {url}")
+                latest_products[url] = current_product
 
         return latest_products
 
@@ -141,14 +144,17 @@ async def parse_html(chat_id, latest_products):  # latest_products will now be a
         if driver:
             driver.quit()
 
+latest_product = {}
+
 async def start_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    latest_product = {}
+    
     await send_telegram_message(chat_id, "search has been initiated...")
 
     async def monitor():  # A function that allows running parse_html in the background while the bot listens to other commands
-        nonlocal latest_product
+        
         while True:
+            global latest_product
             latest_product = await parse_html(chat_id, latest_product)
             await asyncio.sleep(40)
     context.user_data['monitor_task'] = asyncio.create_task(monitor())
