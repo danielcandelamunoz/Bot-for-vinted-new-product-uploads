@@ -15,9 +15,18 @@ from dotenv import load_dotenv
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import threading
 
-TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0' #os.getenv('Telegram_bot_token')
+TOKEN = '7416112397:AAGipeFJtalPmxNb5QgDuDLb2gdVWVEpn_E' #os.getenv('Telegram_bot_token')
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
+Allowed_users = [1419980837]
+Excluded_words = ["collier", "necklace", "ring", "collana", "ceinture", "cinturón", "boucle", "oreille", "pendetif", "belt", "chaussette", "orecchini",  "melissa", "chaîne"]
+
+async def is_allowed_user(chat_id):
+    return chat_id in Allowed_users
+
+async def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    await send_telegram_message(chat_id, f"Your chat ID is: {chat_id}. Please send this to the bot admin to get access.")
 
 
 
@@ -34,6 +43,9 @@ async def send_telegram_message(chat_id, message):
 
 async def set_url(update: Update,context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
+    if not await is_allowed_user(chat_id):
+        await send_telegram_message(chat_id, "You are not allowed to use this bot")
+        return
     await send_telegram_message(chat_id, "hello you are setting up the url for the search, please respond to this message with a valid url ;)")
     context.user_data['waiting for url'] = True
 
@@ -48,6 +60,9 @@ async def save_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['waiting for url'] = False
 async def delete_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
+    if not await is_allowed_user(chat_id):
+        await send_telegram_message(chat_id, "You are not allowed to use this bot")
+        return
     if chat_id not in URLS or not URLS[chat_id]:
         await send_telegram_message(chat_id, "No URLs found to delete.")
         return
@@ -78,6 +93,9 @@ async def process_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def list_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
+    if not await is_allowed_user(chat_id):
+        await send_telegram_message(chat_id, "You are not allowed to use this bot")
+        return
     if chat_id in URLS and URLS[chat_id]:
         # Crear una lista numerada de URLs
         url_list = "\n".join([f"{i+1}. {url}" for i, url in enumerate(URLS[chat_id])])
@@ -126,9 +144,12 @@ async def parse_html(chat_id, latest_products):  # latest_products will now be a
             print(current_product)
             print(latest_product)
 
-            if current_product != latest_product and latest_product != None:
+            if current_product != latest_product and latest_product != None and not any(word in current_product for word in Excluded_words):
                 message = f"There is a new product at {url}: {product_info} {product_link}"
                 await send_telegram_message(chat_id, message)
+                latest_products[url] = current_product
+            elif any(word in current_product for word in Excluded_words):
+                print("producto excluido por palabra prohibida")
                 latest_products[url] = current_product
             else:
                 print(f"No new products at {url}")
@@ -148,7 +169,9 @@ latest_product = {}
 
 async def start_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    
+    if not await is_allowed_user(chat_id):
+        await send_telegram_message(chat_id, "You are not allowed to use this bot")
+        return
     await send_telegram_message(chat_id, "search has been initiated...")
 
     async def monitor():  # A function that allows running parse_html in the background while the bot listens to other commands
@@ -162,6 +185,9 @@ async def start_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stop_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id =update.message.chat_id
+    if not await is_allowed_user(chat_id):
+        await send_telegram_message(chat_id, "You are not allowed to use this bot")
+        return
     if 'monitor_task' in context.user_data:
         context.user_data['monitor_task'].cancel()
         await send_telegram_message(chat_id, "The search has been stopped you can now change the url or start it again using de commands")
@@ -179,6 +205,7 @@ Application.add_handler(CommandHandler("seturl", set_url))
 Application.add_handler(CommandHandler("stopsearch",stop_search))
 Application.add_handler(CommandHandler("deleteurl", delete_url))
 Application.add_handler(CommandHandler("listurl", list_url))
+Application.add_handler(CommandHandler("getchatid", get_chat_id))
 
 Application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
 
