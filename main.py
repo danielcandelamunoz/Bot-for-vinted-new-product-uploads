@@ -145,7 +145,7 @@ async def parse_html(chat_id, latest_products):  # latest_products will now be a
             print(latest_product)
 
             if current_product != latest_product and latest_product != None and not any(word in current_product for word in Excluded_words):
-                message = f"There is a new product at {url}: {product_info} {product_link}"
+                message = f"There is a new product: {product_info} {product_link}"
                 await send_telegram_message(chat_id, message)
                 latest_products[url] = current_product
             elif any(word in current_product for word in Excluded_words):
