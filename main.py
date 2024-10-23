@@ -18,7 +18,7 @@ import threading
 TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0' #os.getenv('Telegram_bot_token')
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
-Allowed_users = [1419980837]
+Allowed_users = [1419980837, 6839437828]
 Excluded_words = ["collier", "necklace", "ring", "collana", "ceinture", "cinturón", "boucle", "oreille", "pendetif", "belt", "chaussette", "orecchini",  "melissa", "chaîne"]
 
 async def is_allowed_user(chat_id):
