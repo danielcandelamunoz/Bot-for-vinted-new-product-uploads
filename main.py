@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import threading
 
-TOKEN = '7416112397:AAGipeFJtalPmxNb5QgDuDLb2gdVWVEpn_E' #os.getenv('Telegram_bot_token')
+TOKEN = '7471144906:AAEWx_QBRfILSPBzLvqTYFlth2SVHHnAdC0' #os.getenv('Telegram_bot_token')
 URLS = {}
 bot = telegram.Bot(token=TOKEN)
 Allowed_users = [1419980837]
