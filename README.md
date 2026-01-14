@@ -1,0 +1,1 @@
+# Bot-for-vinted-new-product-uploads
